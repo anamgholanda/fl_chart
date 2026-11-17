@@ -10,7 +10,7 @@ import 'package:fl_chart/src/extensions/path_extension.dart';
 import 'package:fl_chart/src/extensions/rrect_extension.dart';
 import 'package:fl_chart/src/utils/canvas_wrapper.dart';
 import 'package:fl_chart/src/utils/utils.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// Paints [BarChartData] in the canvas, it can be used in a [CustomPainter]
 class BarChartPainter extends AxisChartPainter<BarChartData> {
@@ -28,21 +28,18 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
 
     _bgTouchTooltipPaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = Colors.white;
+      ..color = const Color(0xFFFFFFFF);
 
     _borderTouchTooltipPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..color = Colors.transparent
+      ..color = const Color(0x00000000)
       ..strokeWidth = 1.0;
-
-    _clipPaint = Paint();
   }
 
   late Paint _barPaint;
   late Paint _barStrokePaint;
   late Paint _bgTouchTooltipPaint;
   late Paint _borderTouchTooltipPaint;
-  late Paint _clipPaint;
 
   List<GroupBarsPosition>? _groupBarsPosition;
 
@@ -56,10 +53,7 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
     if (holder.chartVirtualRect != null) {
       final canvasRect = Offset.zero & canvasWrapper.size;
       canvasWrapper
-        ..saveLayer(
-          canvasRect,
-          _clipPaint,
-        )
+        ..save()
         ..clipRect(canvasRect);
     }
 
@@ -347,7 +341,7 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
               if (stackItem.label != null) {
                 final textStyle = stackItem.labelStyle ??
                     const TextStyle(
-                      color: Colors.white,
+                      color: Color(0xFFFFFFFF),
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     );
@@ -870,15 +864,13 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
             holder,
           );
           barBotY = getPixelY(
-            targetData.barGroups[i].barRods[j].fromY +
-                targetData.barGroups[i].barRods[j].backDrawRodData.fromY,
+            targetData.barGroups[i].barRods[j].fromY,
             viewSize,
             holder,
           );
         } else {
           barTopY = getPixelY(
-            targetData.barGroups[i].barRods[j].fromY +
-                targetData.barGroups[i].barRods[j].backDrawRodData.fromY,
+            targetData.barGroups[i].barRods[j].fromY,
             viewSize,
             holder,
           );
@@ -889,8 +881,14 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
           );
         }
 
-        final backDrawBarY = getPixelY(
-          targetData.barGroups[i].barRods[j].backDrawRodData.toY,
+        final backDrawRod = targetData.barGroups[i].barRods[j].backDrawRodData;
+        final backDrawBarTopY = getPixelY(
+          max(backDrawRod.fromY, backDrawRod.toY),
+          viewSize,
+          holder,
+        );
+        final backDrawBarBottomY = getPixelY(
+          min(backDrawRod.fromY, backDrawRod.toY),
           viewSize,
           holder,
         );
@@ -911,16 +909,10 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
                   (touchedPoint.dy <= barBotY + touchExtraThreshold.bottom);
         }
 
-        bool isYInBarBackDrawBounds;
-        if (isUpward) {
-          isYInBarBackDrawBounds =
-              (touchedPoint.dy <= barBotY + touchExtraThreshold.bottom) &&
-                  (touchedPoint.dy >= backDrawBarY - touchExtraThreshold.top);
-        } else {
-          isYInBarBackDrawBounds = (touchedPoint.dy >=
-                  barTopY - touchExtraThreshold.top) &&
-              (touchedPoint.dy <= backDrawBarY + touchExtraThreshold.bottom);
-        }
+        final isYInBarBackDrawBounds = backDrawRod.show &&
+            (touchedPoint.dy >= backDrawBarTopY - touchExtraThreshold.top) &&
+            (touchedPoint.dy <=
+                backDrawBarBottomY + touchExtraThreshold.bottom);
 
         final isYInTouchBounds =
             (targetData.barTouchData.allowTouchBarBackDraw &&
@@ -943,7 +935,12 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
             final stackItem = nearestBarRod.rodStackItems[stackIndex];
             final fromPixel = getPixelY(stackItem.fromY, viewSize, holder);
             final toPixel = getPixelY(stackItem.toY, viewSize, holder);
-            if (touchedPoint.dy <= fromPixel && touchedPoint.dy >= toPixel) {
+            // A negative-direction stack item has fromY > toY, in which case
+            // fromPixel < toPixel (Flutter Y grows downward). Compare against
+            // the [min, max] range so the check works in either orientation.
+            final topPixel = min(fromPixel, toPixel);
+            final bottomPixel = max(fromPixel, toPixel);
+            if (touchedPoint.dy >= topPixel && touchedPoint.dy <= bottomPixel) {
               touchedStackIndex = stackIndex;
               touchedStack = stackItem;
               break;

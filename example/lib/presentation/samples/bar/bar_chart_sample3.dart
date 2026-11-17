@@ -1,7 +1,7 @@
 import 'package:fl_chart_app/presentation/resources/app_resources.dart';
 import 'package:fl_chart_app/util/extensions/color_extensions.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class BarChartSample3 extends StatefulWidget {
   const BarChartSample3({super.key});
@@ -35,9 +35,9 @@ class BarChartSample3State extends State<BarChartSample3> {
     );
     String text = switch (value.toInt()) {
       0 => 'Mn',
-      1 => 'Te',
+      1 => 'Tu',
       2 => 'Wd',
-      3 => 'Tu',
+      3 => 'Th',
       4 => 'Fr',
       5 => 'St',
       6 => 'Sn',

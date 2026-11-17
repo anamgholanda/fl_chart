@@ -6,8 +6,7 @@ import 'package:fl_chart/src/chart/base/base_chart/fl_touch_event.dart';
 import 'package:fl_chart/src/chart/line_chart/line_chart_data.dart';
 import 'package:fl_chart/src/chart/line_chart/line_chart_helper.dart';
 import 'package:fl_chart/src/chart/line_chart/line_chart_renderer.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// Renders a line chart as a widget, using provided [LineChartData].
 class LineChart extends ImplicitlyAnimatedWidget {
@@ -135,10 +134,21 @@ class _LineChartState extends AnimatedWidgetBaseState<LineChart> {
     if (!event.isInterestedForInteractions ||
         touchResponse?.lineBarSpots == null ||
         touchResponse!.lineBarSpots!.isEmpty) {
+      if (_showingTouchedTooltips.isEmpty &&
+          _showingTouchedIndicators.isEmpty) {
+        // Nothing is shown, so there is nothing to clear.
+        return;
+      }
       setState(() {
         _showingTouchedTooltips.clear();
         _showingTouchedIndicators.clear();
       });
+      return;
+    }
+
+    if (_isShowingSpots(touchResponse.lineBarSpots!)) {
+      // The pointer moved but still touches the same spots (common with mouse
+      // hover), so a rebuild would show exactly the same thing.
       return;
     }
 
@@ -157,6 +167,31 @@ class _LineChartState extends AnimatedWidgetBaseState<LineChart> {
         ..clear()
         ..add(ShowingTooltipIndicators(sortedLineSpots));
     });
+  }
+
+  /// Whether the built-in touch indicators already show exactly [spots].
+  bool _isShowingSpots(List<LineBarSpot> spots) {
+    if (_showingTouchedTooltips.length != 1 ||
+        _showingTouchedIndicators.length != spots.length) {
+      return false;
+    }
+    final showingSpots = _showingTouchedTooltips.first.showingSpots;
+    if (showingSpots.length != spots.length) {
+      return false;
+    }
+    for (final spot in spots) {
+      final isShowing = showingSpots.any(
+        (showing) =>
+            showing.barIndex == spot.barIndex &&
+            showing.spotIndex == spot.spotIndex &&
+            showing.x == spot.x &&
+            showing.y == spot.y,
+      );
+      if (!isShowing) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @override

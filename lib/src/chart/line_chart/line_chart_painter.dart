@@ -9,7 +9,7 @@ import 'package:fl_chart/src/extensions/path_extension.dart';
 import 'package:fl_chart/src/extensions/text_align_extension.dart';
 import 'package:fl_chart/src/utils/canvas_wrapper.dart';
 import 'package:fl_chart/src/utils/utils.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// Paints [LineChartData] in the canvas, it can be used in a [CustomPainter]
 class LineChartPainter extends AxisChartPainter<LineChartData> {
@@ -35,15 +35,15 @@ class LineChartPainter extends AxisChartPainter<LineChartData> {
 
     _touchLinePaint = Paint()
       ..style = PaintingStyle.stroke
-      ..color = Colors.black;
+      ..color = const Color(0xFF000000);
 
     _bgTouchTooltipPaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = Colors.white;
+      ..color = const Color(0xFFFFFFFF);
 
     _borderTouchTooltipPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..color = Colors.transparent
+      ..color = const Color(0x00000000)
       ..strokeWidth = 1.0;
 
     _clipPaint = Paint();
@@ -68,10 +68,7 @@ class LineChartPainter extends AxisChartPainter<LineChartData> {
     final data = holder.data;
     if (holder.chartVirtualRect != null) {
       canvasWrapper
-        ..saveLayer(
-          Offset.zero & canvasWrapper.size,
-          _clipPaint,
-        )
+        ..save()
         ..clipRect(Offset.zero & canvasWrapper.size);
     }
     super.paint(context, canvasWrapper, holder);
@@ -80,15 +77,18 @@ class LineChartPainter extends AxisChartPainter<LineChartData> {
     }
 
     if (data.clipData.any && holder.chartVirtualRect == null) {
-      canvasWrapper.saveLayer(
-        Rect.fromLTWH(
-          0,
-          -40,
-          canvasWrapper.size.width + 40,
-          canvasWrapper.size.height + 40,
-        ),
-        _clipPaint,
-      );
+      // A clip needs no offscreen layer, save() is enough. The first clip
+      // keeps the area the layer bounds used to limit drawing to.
+      canvasWrapper
+        ..save()
+        ..clipRect(
+          Rect.fromLTWH(
+            0,
+            -40,
+            canvasWrapper.size.width + 40,
+            canvasWrapper.size.height + 40,
+          ),
+        );
 
       clipToBorder(canvasWrapper, holder);
     }
@@ -114,10 +114,6 @@ class LineChartPainter extends AxisChartPainter<LineChartData> {
       drawBarLine(canvasWrapper, barData, holder);
       drawDots(canvasWrapper, barData, holder);
 
-      if (data.extraLinesData.extraLinesOnTop) {
-        super.drawExtraLines(context, canvasWrapper, holder);
-      }
-
       final indicatorsData = data.lineTouchData
           .getTouchedSpotIndicator(barData, barData.showingIndicators);
 
@@ -142,6 +138,11 @@ class LineChartPainter extends AxisChartPainter<LineChartData> {
           LineIndexDrawingInfo(barData, i, spot, index, indicatorData),
         );
       }
+    }
+
+    // Once, above all the lines (it used to be drawn again after each line).
+    if (data.extraLinesData.extraLinesOnTop) {
+      super.drawExtraLines(context, canvasWrapper, holder);
     }
 
     drawTouchedSpotsIndicator(canvasWrapper, lineIndexDrawingInfo, holder);
@@ -203,10 +204,13 @@ class LineChartPainter extends AxisChartPainter<LineChartData> {
     final clip = data.clipData;
     final border = data.borderData.show ? data.borderData.border : null;
 
-    var left = 0.0;
-    var top = 0.0;
-    var right = viewSize.width;
-    var bottom = viewSize.height;
+    // Sides that aren't enabled in [clip] must stay unclipped. We extend their
+    // boundary to infinity so [Canvas.clipRect] only clips the enabled sides
+    // (otherwise enabling any single side would clip all four).
+    var left = double.negativeInfinity;
+    var top = double.negativeInfinity;
+    var right = double.infinity;
+    var bottom = double.infinity;
 
     if (clip.left) {
       final borderWidth = border?.left.width ?? 0;
@@ -358,6 +362,7 @@ class LineChartPainter extends AxisChartPainter<LineChartData> {
     final viewSize = canvasWrapper.size;
 
     final barXDelta = getBarLineXLength(barData, viewSize, holder);
+    final canvasRect = Offset.zero & viewSize;
 
     for (var i = 0; i < barData.spots.length; i++) {
       final spot = barData.spots[i];
@@ -367,6 +372,16 @@ class LineChartPainter extends AxisChartPainter<LineChartData> {
         final xPercentInLine = (x / barXDelta) * 100;
         final painter =
             barData.dotData.getDotPainter(spot, xPercentInLine, barData, i);
+
+        // Skip the dots that can't reach the canvas, like most of them when
+        // the chart is zoomed in. The margin is the dot's whole size, twice
+        // what it needs, to be safe with custom painters.
+        final margin = painter.getSize(spot).longestSide;
+        if (x.isFinite &&
+            y.isFinite &&
+            !canvasRect.inflate(margin).contains(Offset(x, y))) {
+          continue;
+        }
 
         canvasWrapper.drawDot(painter, spot, Offset(x, y));
       }
@@ -525,7 +540,7 @@ class LineChartPainter extends AxisChartPainter<LineChartData> {
     }
   }
 
-  /// Generates a path, based on [LineChartBarData.isStepChart] for step style, and normal style.
+  /// Generates a path, based on [LineChartBarData.isStepLineChart] for step style, and normal style.
   @visibleForTesting
   Path generateBarPath(
     Size viewSize,
@@ -983,12 +998,10 @@ class LineChartPainter extends AxisChartPainter<LineChartData> {
     );
 
     canvasWrapper
-      ..saveLayer(
-        Rect.fromLTWH(0, 0, viewSize.width, viewSize.height),
-        _clipPaint,
-      )
+      ..save()
+      ..clipRect(Rect.fromLTWH(0, 0, viewSize.width, viewSize.height))
       ..drawPath(barPath, _barAreaPaint)
-      ..restore(); // clear the above area that get out of the bar line
+      ..restore();
   }
 
   /// draw the main bar line's shadow by the [barPath]
@@ -1385,7 +1398,7 @@ class LineChartPainter extends AxisChartPainter<LineChartData> {
     }
 
     /// Find the nearest spot (based on distanceCalculator)
-    final sortedSpots = <FlSpot>[];
+    FlSpot? nearestSpot;
     double? smallestDistance;
     for (final spot in barData.spots) {
       if (spot.isNull()) continue;
@@ -1398,22 +1411,24 @@ class LineChartPainter extends AxisChartPainter<LineChartData> {
       );
 
       if (distance <= data.lineTouchData.touchSpotThreshold) {
-        smallestDistance ??= distance;
-
-        if (distance < smallestDistance) {
-          sortedSpots.insert(0, spot);
+        if (nearestSpot == null) {
+          nearestSpot = spot;
           smallestDistance = distance;
-        } else {
-          sortedSpots.add(spot);
+          continue;
+        }
+
+        if (distance < smallestDistance!) {
+          nearestSpot = spot;
+          smallestDistance = distance;
         }
       }
     }
 
-    if (sortedSpots.isNotEmpty) {
+    if (nearestSpot != null) {
       return TouchLineBarSpot(
         barData,
         barDataPosition,
-        sortedSpots.first,
+        nearestSpot,
         smallestDistance!,
       );
     } else {

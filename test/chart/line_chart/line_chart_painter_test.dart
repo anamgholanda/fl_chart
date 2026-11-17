@@ -9,8 +9,8 @@ import 'package:fl_chart/src/chart/line_chart/line_chart_painter.dart';
 import 'package:fl_chart/src/extensions/path_extension.dart';
 import 'package:fl_chart/src/utils/canvas_wrapper.dart';
 import 'package:fl_chart/src/utils/utils.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
@@ -21,6 +21,40 @@ import 'line_chart_painter_test.mocks.dart';
 @GenerateNiceMocks([MockSpec<LinearGradient>()])
 void main() {
   group('paint()', () {
+    test('extra lines on top are drawn once, not once per line', () {
+      const viewSize = Size(400, 400);
+      LineChartBarData bar(double offset) => LineChartBarData(
+            spots: List.generate(5, (i) => FlSpot(i.toDouble(), i + offset)),
+          );
+      for (final extraLinesOnTop in [true, false]) {
+        final data = LineChartData(
+          minX: 0,
+          maxX: 4,
+          minY: 0,
+          maxY: 10,
+          lineBarsData: [bar(0), bar(1), bar(2)],
+          gridData: const FlGridData(show: false),
+          titlesData: const FlTitlesData(show: false),
+          borderData: FlBorderData(show: false),
+          extraLinesData: ExtraLinesData(
+            horizontalLines: [HorizontalLine(y: 5)],
+            extraLinesOnTop: extraLinesOnTop,
+          ),
+        );
+
+        final mockCanvasWrapper = MockCanvasWrapper();
+        when(mockCanvasWrapper.size).thenAnswer((_) => viewSize);
+        when(mockCanvasWrapper.canvas).thenReturn(MockCanvas());
+        LineChartPainter().paint(
+          MockBuildContext(),
+          mockCanvasWrapper,
+          PaintHolder<LineChartData>(data, data, TextScaler.noScaling),
+        );
+
+        verify(mockCanvasWrapper.drawDashedLine(any, any, any, any)).called(1);
+      }
+    });
+
     test('test 1', () {
       const viewSize = Size(400, 400);
 
@@ -120,7 +154,8 @@ void main() {
         holder,
       );
 
-      verify(mockCanvasWrapper.clipRect(any)).called(1);
+      verify(mockCanvasWrapper.clipRect(any)).called(3);
+      verifyNever(mockCanvasWrapper.saveLayer(any, any));
       verify(mockCanvasWrapper.drawDot(any, any, any)).called(12);
       verify(mockCanvasWrapper.drawPath(any, any)).called(3);
     });
@@ -325,7 +360,8 @@ void main() {
         holder,
       );
 
-      verify(mockCanvasWrapper.clipRect(any)).called(1);
+      verify(mockCanvasWrapper.clipRect(any)).called(3);
+      verifyNever(mockCanvasWrapper.saveLayer(any, any));
       verify(mockCanvasWrapper.drawDot(any, any, any)).called(12);
       verify(mockCanvasWrapper.drawPath(any, any)).called(3);
     });
@@ -351,10 +387,11 @@ void main() {
       final verifyResult = verify(mockCanvasWrapper.clipRect(captureAny));
       final rect = verifyResult.captured.single as Rect;
       verifyResult.called(1);
-      expect(rect.left, 0);
-      expect(rect.top, 0);
-      expect(rect.width, 400);
-      expect(rect.height, 400);
+      // No side is clipped, so every boundary is left unbounded.
+      expect(rect.left, double.negativeInfinity);
+      expect(rect.top, double.negativeInfinity);
+      expect(rect.right, double.infinity);
+      expect(rect.bottom, double.infinity);
     });
 
     test('test 2', () {
@@ -398,10 +435,11 @@ void main() {
       final verifyResult = verify(mockCanvasWrapper.clipRect(captureAny));
       final rect = verifyResult.captured.single as Rect;
       verifyResult.called(1);
+      // Only left and right are clipped; top and bottom stay unbounded.
       expect(rect.left, 4);
-      expect(rect.top, 0);
+      expect(rect.top, double.negativeInfinity);
       expect(rect.right, 396);
-      expect(rect.bottom, 400);
+      expect(rect.bottom, double.infinity);
     });
 
     test('test 3', () {
@@ -452,6 +490,40 @@ void main() {
       expect(rect.top, 4);
       expect(rect.right, 396);
       expect(rect.bottom, 396);
+    });
+
+    test('test 4 - enabling one side does not clip the others (#1262)', () {
+      const viewSize = Size(400, 400);
+
+      final data = LineChartData(
+        borderData: FlBorderData(show: true, border: Border.all(width: 8)),
+        clipData: const FlClipData(
+          top: false,
+          bottom: false,
+          left: true,
+          right: false,
+        ),
+      );
+
+      final lineChartPainter = LineChartPainter();
+      final holder =
+          PaintHolder<LineChartData>(data, data, TextScaler.noScaling);
+      final mockCanvasWrapper = MockCanvasWrapper();
+      when(mockCanvasWrapper.size).thenAnswer((realInvocation) => viewSize);
+      when(mockCanvasWrapper.canvas).thenReturn(MockCanvas());
+      lineChartPainter.clipToBorder(
+        mockCanvasWrapper,
+        holder,
+      );
+
+      final verifyResult = verify(mockCanvasWrapper.clipRect(captureAny));
+      final rect = verifyResult.captured.single as Rect;
+      verifyResult.called(1);
+      // Only the left side is clipped; the other three stay unbounded.
+      expect(rect.left, 4);
+      expect(rect.top, double.negativeInfinity);
+      expect(rect.right, double.infinity);
+      expect(rect.bottom, double.infinity);
     });
   });
 
@@ -610,18 +682,52 @@ void main() {
       );
 
       final verifyResult = verifyInOrder([
-        mockCanvasWrapper.saveLayer(const Rect.fromLTWH(0, 0, 400, 400), any),
+        mockCanvasWrapper.save(),
+        mockCanvasWrapper.clipRect(const Rect.fromLTWH(0, 0, 400, 400)),
         mockCanvasWrapper.drawPath(any, captureAny),
         mockCanvasWrapper.restore(),
       ]);
+      verifyNever(mockCanvasWrapper.saveLayer(any, any));
 
-      final paint = verifyResult[1].captured.first as Paint;
+      final paint = verifyResult[2].captured.first as Paint;
       expect(paint.shader, null);
       expect(paint.color, const Color(0xFFFF0000));
     });
   });
 
   group('drawDots()', () {
+    test('skips the dots outside the canvas when zoomed in', () {
+      const viewSize = Size(100, 100);
+      final barData = LineChartBarData(
+        spots: List.generate(11, (i) => FlSpot(i.toDouble(), 5)),
+      );
+      final data = LineChartData(
+        minX: 0,
+        maxX: 10,
+        minY: 0,
+        maxY: 10,
+        lineBarsData: [barData],
+      );
+      // Zoomed 10x on the left end: x = 0 is at 0 px, x = 1 at 100 px,
+      // x = 2 at 200 px, and so on.
+      final holder = PaintHolder<LineChartData>(
+        data,
+        data,
+        TextScaler.noScaling,
+        const Rect.fromLTWH(0, 0, 1000, 100),
+      );
+      final mockCanvasWrapper = MockCanvasWrapper();
+      when(mockCanvasWrapper.size).thenAnswer((_) => viewSize);
+      when(mockCanvasWrapper.canvas).thenReturn(MockCanvas());
+
+      LineChartPainter().drawDots(mockCanvasWrapper, barData, holder);
+
+      final drawn = verify(
+        mockCanvasWrapper.drawDot(any, captureAny, any),
+      ).captured.cast<FlSpot>();
+      expect(drawn.map((spot) => spot.x), [0, 1]);
+    });
+
     test('test 1', () {
       const viewSize = Size(400, 400);
 
@@ -2000,12 +2106,13 @@ void main() {
         holder,
       );
 
-      verify(
-        mockCanvasWrapper.saveLayer(
+      verifyInOrder([
+        mockCanvasWrapper.save(),
+        mockCanvasWrapper.clipRect(
           Rect.fromLTWH(0, 0, viewSize.width, viewSize.height),
-          any,
         ),
-      );
+      ]);
+      verifyNever(mockCanvasWrapper.saveLayer(any, any));
       final result =
           verify(mockCanvasWrapper.drawPath(aboveBarPath, captureAny))
             ..called(1);
@@ -2790,12 +2897,10 @@ void main() {
           ),
           holder.data.extraLinesData.verticalLines[0].dashArray,
         ),
-        mockCanvasWrapper.saveLayer(
-          viewRect,
-          any,
-        ),
+        mockCanvasWrapper.save(),
         mockCanvasWrapper.clipRect(viewRect),
       ]);
+      verifyNever(mockCanvasWrapper.saveLayer(any, any));
     });
   });
 

@@ -6,7 +6,7 @@ import 'package:fl_chart/src/chart/line_chart/line_chart_painter.dart';
 import 'package:fl_chart/src/extensions/paint_extension.dart';
 import 'package:fl_chart/src/utils/canvas_wrapper.dart';
 import 'package:fl_chart/src/utils/utils.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// This class is responsible to draw the grid behind all axis base charts.
 /// also we have two useful function [getPixelX] and [getPixelY] that used
@@ -25,15 +25,12 @@ abstract class AxisChartPainter<D extends AxisChartData>
     _extraLinesPaint = Paint()..style = PaintingStyle.stroke;
 
     _imagePaint = Paint();
-
-    _clipPaint = Paint();
   }
 
   late Paint _gridPaint;
   late Paint _backgroundPaint;
   late Paint _extraLinesPaint;
   late Paint _imagePaint;
-  late Paint _clipPaint;
 
   /// [_rangeAnnotationPaint] draws range annotations;
   late Paint _rangeAnnotationPaint;
@@ -238,10 +235,7 @@ abstract class AxisChartPainter<D extends AxisChartData>
 
     if (holder.chartVirtualRect != null) {
       canvasWrapper
-        ..saveLayer(
-          Offset.zero & canvasWrapper.size,
-          _clipPaint,
-        )
+        ..save()
         ..clipRect(Offset.zero & canvasWrapper.size);
     }
   }

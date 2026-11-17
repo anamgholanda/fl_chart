@@ -1,8 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+
 import '../../data_pool.dart';
 import 'axis_chart_data_test.mocks.dart';
 
@@ -382,6 +383,20 @@ void main() {
       verify(
         mockCanvas.drawParagraph(captureAny, captureAny),
       ).called(4);
+    });
+  });
+  group('FlDotPainter equality check', () {
+    test(
+        'different dot painter subtypes with identical field values are not equal',
+        () {
+      final circle =
+          FlDotCirclePainter(color: Colors.red, radius: 4, strokeWidth: 1);
+      final square = FlDotSquarePainter(color: Colors.red);
+      final cross = FlDotCrossPainter(color: Colors.red, size: 4, width: 1);
+
+      expect(circle, isNot(equals(square)));
+      expect(circle, isNot(equals(cross)));
+      expect(square, isNot(equals(cross)));
     });
   });
 }

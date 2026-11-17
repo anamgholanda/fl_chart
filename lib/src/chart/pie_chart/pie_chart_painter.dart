@@ -6,7 +6,7 @@ import 'package:fl_chart/src/chart/base/line.dart';
 import 'package:fl_chart/src/extensions/paint_extension.dart';
 import 'package:fl_chart/src/utils/canvas_wrapper.dart';
 import 'package:fl_chart/src/utils/utils.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// Paints [PieChartData] in the canvas, it can be used in a [CustomPainter]
 class PieChartPainter extends BaseChartPainter<PieChartData> {
@@ -43,16 +43,65 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
   ) {
     super.paint(context, canvasWrapper, holder);
     final data = holder.data;
-    if (data.sections.isEmpty) {
+    if (data.sections.isNotEmpty) {
+      final sectionsAngle = calculateSectionsAngle(
+        data.sections,
+        data.sumValue,
+      );
+      final centerRadius = calculateCenterRadius(canvasWrapper.size, holder);
+
+      drawCenterSpace(canvasWrapper, centerRadius, holder);
+      drawSections(canvasWrapper, sectionsAngle, centerRadius, holder);
+      drawTexts(context, canvasWrapper, holder, centerRadius);
+    }
+
+    // Painted after the pie so the frame stays visible when a section
+    // extends into the border area.
+    drawBorder(canvasWrapper, holder);
+  }
+
+  /// Rectangle the pie is laid out in.
+  ///
+  /// Axis charts pad their plot by [Border.dimensions] and paint [FlBorderData]
+  /// around that rectangle. When the border is hidden this is the full
+  /// [viewSize], so existing charts keep their current layout.
+  @visibleForTesting
+  Rect calculateChartRect(Size viewSize, PaintHolder<PieChartData> holder) {
+    final borderData = holder.data.borderData;
+    if (!borderData.isVisible()) {
+      return Offset.zero & viewSize;
+    }
+
+    final insets = borderData.border.dimensions.resolve(TextDirection.ltr);
+    double inset(double value, double limit) =>
+        value.clamp(0, limit).toDouble();
+
+    final left = inset(insets.left, viewSize.width);
+    final top = inset(insets.top, viewSize.height);
+    final right = viewSize.width - inset(insets.right, viewSize.width - left);
+    final bottom =
+        viewSize.height - inset(insets.bottom, viewSize.height - top);
+    return Rect.fromLTRB(left, top, right, bottom);
+  }
+
+  Offset _chartCenter(Size viewSize, PaintHolder<PieChartData> holder) =>
+      calculateChartRect(viewSize, holder).center;
+
+  /// Draws [FlBorderData] around the chart rectangle when it is visible.
+  @visibleForTesting
+  void drawBorder(
+    CanvasWrapper canvasWrapper,
+    PaintHolder<PieChartData> holder,
+  ) {
+    final borderData = holder.data.borderData;
+    if (!borderData.isVisible()) {
       return;
     }
 
-    final sectionsAngle = calculateSectionsAngle(data.sections, data.sumValue);
-    final centerRadius = calculateCenterRadius(canvasWrapper.size, holder);
-
-    drawCenterSpace(canvasWrapper, centerRadius, holder);
-    drawSections(canvasWrapper, sectionsAngle, centerRadius, holder);
-    drawTexts(context, canvasWrapper, holder, centerRadius);
+    canvasWrapper.drawBorder(
+      borderData.border,
+      Offset.zero & canvasWrapper.size,
+    );
   }
 
   @visibleForTesting
@@ -76,13 +125,11 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
     PaintHolder<PieChartData> holder,
   ) {
     final data = holder.data;
-    final viewSize = canvasWrapper.size;
-    final centerX = viewSize.width / 2;
-    final centerY = viewSize.height / 2;
+    final center = _chartCenter(canvasWrapper.size, holder);
 
     _centerSpacePaint.color = data.centerSpaceColor;
     canvasWrapper.drawCircle(
-      Offset(centerX, centerY),
+      center,
       centerRadius,
       _centerSpacePaint,
     );
@@ -98,7 +145,7 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
     final data = holder.data;
     final viewSize = canvasWrapper.size;
 
-    final center = Offset(viewSize.width / 2, viewSize.height / 2);
+    final center = _chartCenter(viewSize, holder);
 
     var tempAngle = data.startDegreeOffset;
 
@@ -153,9 +200,10 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
 
       if (section.value == 0 || section.radius == 0) continue;
 
-      final sectionPath = generateSectionPath(
-        section,
-        data.sectionsSpace,
+      final sectionPath = _sectionPath(
+        i,
+        holder,
+        viewSize,
         tempAngle,
         sectionDegree,
         center,
@@ -288,6 +336,41 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
   }
 
   /// Generates a path around a section
+  PieChartData? _sectionPathsData;
+  Size? _sectionPathsSize;
+  final _sectionPaths = <int, Path>{};
+
+  /// The path of the section at [index], built once per data and size.
+  ///
+  /// The paint and every touch event need the same paths, and the
+  /// section-space cuts ([Path.combine]) are costly. The data classes are
+  /// immutable, so the same [PieChartData] and size always give the same
+  /// paths. New data (an animation frame or a rebuild) starts over.
+  Path _sectionPath(
+    int index,
+    PaintHolder<PieChartData> holder,
+    Size viewSize,
+    double tempAngle,
+    double sectionDegree,
+    Offset center,
+    double centerRadius,
+  ) {
+    if (!identical(holder.data, _sectionPathsData) ||
+        viewSize != _sectionPathsSize) {
+      _sectionPaths.clear();
+      _sectionPathsData = holder.data;
+      _sectionPathsSize = viewSize;
+    }
+    return _sectionPaths[index] ??= generateSectionPath(
+      holder.data.sections[index],
+      holder.data.sectionsSpace,
+      tempAngle,
+      sectionDegree,
+      center,
+      centerRadius,
+    );
+  }
+
   @visibleForTesting
   Path generateSectionPath(
     PieChartSectionData section,
@@ -701,7 +784,7 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
   ) {
     final data = holder.data;
     final viewSize = canvasWrapper.size;
-    final center = Offset(viewSize.width / 2, viewSize.height / 2);
+    final center = _chartCenter(viewSize, holder);
 
     var tempAngle = data.startDegreeOffset;
 
@@ -771,8 +854,9 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
     if (data.sections.isEmpty) {
       return 0;
     }
+    final chartSize = calculateChartRect(viewSize, holder).size;
     final maxRadius = data.sections.map((s) => s.radius).reduce(math.max);
-    return (viewSize.shortestSide - (maxRadius * 2)) / 2;
+    return (chartSize.shortestSide - (maxRadius * 2)) / 2;
   }
 
   /// Makes a [PieTouchedSection] based on the provided [localPosition]
@@ -789,7 +873,7 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
     final sectionsAngle = calculateSectionsAngle(data.sections, data.sumValue);
     final centerRadius = calculateCenterRadius(viewSize, holder);
 
-    final center = Offset(viewSize.width / 2, viewSize.height / 2);
+    final center = _chartCenter(viewSize, holder);
 
     final touchedPoint2 = localPosition - center;
 
@@ -821,9 +905,10 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
         break;
       }
 
-      final sectionPath = generateSectionPath(
-        section,
-        data.sectionsSpace,
+      final sectionPath = _sectionPath(
+        i,
+        holder,
+        viewSize,
         tempAngle,
         sectionAngle,
         center,
@@ -853,7 +938,7 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
     PaintHolder<PieChartData> holder,
   ) {
     final data = holder.data;
-    final center = viewSize.center(Offset.zero);
+    final center = _chartCenter(viewSize, holder);
     final badgeWidgetsOffsets = <int, Offset>{};
 
     if (data.sections.isEmpty) {

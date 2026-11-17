@@ -1,10 +1,10 @@
 // coverage:ignore-file
 import 'package:fl_chart/src/chart/base/base_chart/base_chart_data.dart';
 import 'package:fl_chart/src/chart/base/base_chart/fl_touch_event.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 /// It implements shared logics between our renderers such as touch/pointer events recognition, size, layout, ...
 abstract class RenderBaseChart<R extends BaseTouchResponse> extends RenderBox
@@ -154,7 +154,7 @@ abstract class RenderBaseChart<R extends BaseTouchResponse> extends RenderBox
   @override
   void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) {
     assert(debugHandleEvent(event, entry));
-    if (_touchCallback == null) {
+    if (_touchCallback == null && _mouseCursorResolver == null) {
       return;
     }
     if (event is PointerDownEvent) {
@@ -183,7 +183,7 @@ abstract class RenderBaseChart<R extends BaseTouchResponse> extends RenderBox
   /// We get a [BaseTouchResponse] using [getResponseAtLocation] for events which contains a localPosition.
   /// Then we invoke [_touchCallback] using the [event] and [response].
   void _notifyTouchEvent(FlTouchEvent event) {
-    if (_touchCallback == null) {
+    if (_touchCallback == null && _mouseCursorResolver == null) {
       return;
     }
     final localPosition = event.localPosition;
@@ -191,7 +191,7 @@ abstract class RenderBaseChart<R extends BaseTouchResponse> extends RenderBox
     if (localPosition != null) {
       response = getResponseAtLocation(localPosition);
     }
-    _touchCallback!(event, response);
+    _touchCallback?.call(event, response);
 
     if (_mouseCursorResolver == null) {
       _latestMouseCursor = MouseCursor.defer;
@@ -224,5 +224,13 @@ abstract class RenderBaseChart<R extends BaseTouchResponse> extends RenderBox
   void detach() {
     _validForMouseTracker = false;
     super.detach();
+  }
+
+  @override
+  void dispose() {
+    panGestureRecognizer.dispose();
+    tapGestureRecognizer.dispose();
+    longPressGestureRecognizer.dispose();
+    super.dispose();
   }
 }

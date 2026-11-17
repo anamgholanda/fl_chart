@@ -1,12 +1,12 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:fl_chart/src/chart/base/axis_chart/axis_chart_helper.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/widgets.dart';
 
 /// Wraps a [child] widget and applies some default behaviours
 ///
 /// Recommended to be used in [SideTitles.getTitlesWidget]
-/// You need to pass [axisSide] value that provided by [TitleMeta]
+/// You need to pass the [meta] value that is provided by [SideTitles.getTitlesWidget]
 /// It forces the widget to be close to the chart.
 /// It also applies a [space] to the chart.
 /// You can also fill [angle] in radians if you need to rotate your widget.
@@ -38,7 +38,7 @@ class SideTitleWidget extends StatefulWidget {
   /// [SideTitleFitInsideData.fromTitleMeta] and pass the
   /// TitleMeta provided from [SideTitles.getTitlesWidget]
   ///
-  /// If [fitInside.enabled] is true, the widget will be placed
+  /// If [SideTitleFitInsideData.enabled] is true, the widget will be placed
   /// inside the parent axis bounding box.
   ///
   /// Some translations will be applied to force

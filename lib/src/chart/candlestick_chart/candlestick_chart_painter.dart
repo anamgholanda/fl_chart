@@ -3,7 +3,7 @@ import 'package:fl_chart/src/chart/base/axis_chart/axis_chart_painter.dart';
 import 'package:fl_chart/src/chart/base/base_chart/base_chart_painter.dart';
 import 'package:fl_chart/src/utils/canvas_wrapper.dart';
 import 'package:fl_chart/src/utils/utils.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// Paints [CandlestickChartData] in the canvas, it can be used in a [CustomPainter]
 class CandlestickChartPainter extends AxisChartPainter<CandlestickChartData> {
@@ -11,19 +11,16 @@ class CandlestickChartPainter extends AxisChartPainter<CandlestickChartData> {
   CandlestickChartPainter() : super() {
     _bgTouchTooltipPaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = Colors.white;
+      ..color = const Color(0xFFFFFFFF);
 
     _borderTouchTooltipPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..color = Colors.transparent
+      ..color = const Color(0x00000000)
       ..strokeWidth = 1.0;
-
-    _clipPaint = Paint();
   }
 
   late Paint _bgTouchTooltipPaint;
   late Paint _borderTouchTooltipPaint;
-  late Paint _clipPaint;
 
   /// Paints [CandlestickChartData] into the provided canvas.
   @override
@@ -34,10 +31,7 @@ class CandlestickChartPainter extends AxisChartPainter<CandlestickChartData> {
   ) {
     if (holder.chartVirtualRect != null) {
       canvasWrapper
-        ..saveLayer(
-          Offset.zero & canvasWrapper.size,
-          _clipPaint,
-        )
+        ..save()
         ..clipRect(Offset.zero & canvasWrapper.size);
     }
     super.paint(context, canvasWrapper, holder);
@@ -63,20 +57,26 @@ class CandlestickChartPainter extends AxisChartPainter<CandlestickChartData> {
     final border = data.borderData.show ? data.borderData.border : null;
 
     if (data.clipData.any) {
-      canvasWrapper.saveLayer(
-        Rect.fromLTRB(
-          0,
-          0,
-          canvasWrapper.size.width,
-          canvasWrapper.size.height,
-        ),
-        _clipPaint,
-      );
+      // A clip needs no offscreen layer, save() is enough. The first clip
+      // keeps the area the layer bounds used to limit drawing to.
+      canvasWrapper
+        ..save()
+        ..clipRect(
+          Rect.fromLTRB(
+            0,
+            0,
+            canvasWrapper.size.width,
+            canvasWrapper.size.height,
+          ),
+        );
 
-      var left = 0.0;
-      var top = 0.0;
-      var right = viewSize.width;
-      var bottom = viewSize.height;
+      // Sides that aren't enabled in [clip] must stay unclipped. We extend
+      // their boundary to infinity so [Canvas.clipRect] only clips the enabled
+      // sides (otherwise enabling any single side would clip all four).
+      var left = double.negativeInfinity;
+      var top = double.negativeInfinity;
+      var right = double.infinity;
+      var bottom = double.infinity;
 
       if (clip.left) {
         final borderWidth = border?.left.width ?? 0;

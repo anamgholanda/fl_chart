@@ -1,8 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:fl_chart/src/chart/bar_chart/bar_chart_helper.dart';
 import 'package:fl_chart/src/chart/base/axis_chart/side_titles/side_titles_widget.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   const viewSize = Size(400, 400);
@@ -513,6 +513,53 @@ void main() {
       for (var i = 0; i <= 10; i++) {
         expect(find.text('L-$i'), findsOneWidget);
       }
+    },
+  );
+
+  testWidgets(
+    'LineChart default left titles stay distinct on a tall narrow-range axis (#1584)',
+    (tester) async {
+      const parentSize = Size(400, 1000);
+      tester.view.physicalSize = parentSize;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: parentSize.width,
+              height: parentSize.height,
+              child: SideTitlesWidget(
+                side: AxisSide.left,
+                axisChartData: LineChartData(
+                  minX: 0,
+                  maxX: 10,
+                  minY: 976405.27,
+                  maxY: 1135594.31,
+                  titlesData: const FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: true),
+                    ),
+                    topTitles: AxisTitles(),
+                    rightTitles: AxisTitles(),
+                    bottomTitles: AxisTitles(),
+                  ),
+                ),
+                parentSize: parentSize,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final labels = tester
+          .widgetList<Text>(find.byType(Text))
+          .map((t) => t.data)
+          .toList();
+      expect(labels.length, greaterThan(20));
+      expect(labels.toSet().length, labels.length);
+      expect(labels, contains('1.005M'));
     },
   );
 }

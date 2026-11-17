@@ -1,12 +1,14 @@
 import 'package:fl_chart/src/chart/bar_chart/bar_chart.dart';
 import 'package:fl_chart/src/chart/bar_chart/bar_chart_data.dart';
 import 'package:fl_chart/src/chart/bar_chart/bar_chart_renderer.dart';
+import 'package:fl_chart/src/chart/base/axis_chart/axis_chart_data.dart';
 import 'package:fl_chart/src/chart/base/axis_chart/axis_chart_scaffold_widget.dart';
 import 'package:fl_chart/src/chart/base/axis_chart/scale_axis.dart';
 import 'package:fl_chart/src/chart/base/axis_chart/transformation_config.dart';
+import 'package:fl_chart/src/extensions/bar_chart_data_extension.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   Widget createTestWidget({
@@ -137,6 +139,92 @@ void main() {
       }
     });
 
+    group('renders axis labels with a large reserved size when rotated', () {
+      BarChartData createData(int rotationQuarterTurns) {
+        return BarChartData(
+          rotationQuarterTurns: rotationQuarterTurns,
+          minY: 0,
+          maxY: 10,
+          barGroups: [
+            for (final x in [1, 2, 3, 4])
+              BarChartGroupData(
+                x: x,
+                barRods: [
+                  BarChartRodData(toY: x.toDouble()),
+                ],
+              ),
+          ],
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 25,
+                interval: 2,
+                getTitlesWidget: (value, meta) {
+                  return Text('left-${value.toInt()}');
+                },
+              ),
+            ),
+            topTitles: const AxisTitles(),
+            rightTitles: const AxisTitles(),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 115,
+                getTitlesWidget: (value, meta) {
+                  return Text('bottom-${value.toInt()}');
+                },
+              ),
+            ),
+          ),
+        );
+      }
+
+      for (final rotationQuarterTurns in [1, 3]) {
+        testWidgets(
+          'with rotationQuarterTurns: $rotationQuarterTurns (#1963)',
+          (tester) async {
+            await tester.pumpWidget(
+              MaterialApp(
+                home: Scaffold(
+                  body: Center(
+                    child: SizedBox(
+                      width: 350,
+                      height: 120,
+                      // The 2px border insets the chart to 346x116, which is
+                      // slightly shorter than the bottom titles reserved size.
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(width: 2),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: BarChart(createData(rotationQuarterTurns)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+
+            final chartRect = tester.getRect(find.byType(BarChart));
+
+            for (final x in [1, 2, 3, 4]) {
+              final bottomTitle = find.text('bottom-$x');
+              expect(bottomTitle, findsOneWidget);
+              expect(tester.getSize(bottomTitle).isEmpty, isFalse);
+              expect(chartRect.overlaps(tester.getRect(bottomTitle)), isTrue);
+            }
+            for (var y = 0; y <= 10; y += 2) {
+              final leftTitle = find.text('left-$y');
+              expect(leftTitle, findsOneWidget);
+              expect(tester.getSize(leftTitle).isEmpty, isFalse);
+              expect(chartRect.overlaps(tester.getRect(leftTitle)), isTrue);
+            }
+          },
+        );
+      }
+    });
+
     testWidgets('has correct default values', (tester) async {
       await tester.pumpWidget(
         createTestWidget(
@@ -171,12 +259,14 @@ void main() {
 
       await tester.pumpAndSettle();
 
+      final transformationController = TransformationController();
+      addTearDown(transformationController.dispose);
       final transformationConfig = FlTransformationConfig(
         scaleAxis: FlScaleAxis.free,
         trackpadScrollCausesScale: true,
         maxScale: 10,
         minScale: 1.5,
-        transformationController: TransformationController(),
+        transformationController: transformationController,
       );
       await tester.pumpWidget(
         createTestWidget(
@@ -920,6 +1010,73 @@ void main() {
         expect(chartVirtualRect.size, greaterThan(renderBox.size));
         expect(chartVirtualRect.left, isNegative);
         expect(chartVirtualRect.top, isNegative);
+      });
+    });
+
+    group('built-in touch', () {
+      testWidgets('rebuilds only when the touched rod changes', (tester) async {
+        var touchCallbacks = 0;
+        final data = BarChartData(
+          minY: 0,
+          maxY: 10,
+          titlesData: const FlTitlesData(show: false),
+          barTouchData: BarTouchData(
+            touchCallback: (_, __) => touchCallbacks++,
+          ),
+          barGroups: List.generate(
+            5,
+            (i) => BarChartGroupData(
+              x: i,
+              barRods: [BarChartRodData(toY: 10, width: 40)],
+            ),
+          ),
+        );
+        await tester.pumpWidget(createTestWidget(chart: BarChart(data)));
+        await tester.pumpAndSettle();
+
+        final rect = tester.getRect(find.byType(BarChartLeaf));
+        final groupsX = data.calculateGroupsX(rect.width);
+        Offset groupPosition(int index) =>
+            Offset(rect.left + groupsX[index], rect.center.dy);
+        BarChartLeaf leaf() =>
+            tester.widget<BarChartLeaf>(find.byType(BarChartLeaf));
+        List<List<int>> showing() => leaf()
+            .data
+            .barGroups
+            .map((group) => group.showingTooltipIndicators)
+            .toList();
+
+        final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+        addTearDown(mouse.removePointer);
+        await mouse.addPointer(location: rect.topLeft - const Offset(10, 10));
+        await mouse.moveTo(groupPosition(1));
+        await tester.pump();
+        final touchedLeaf = leaf();
+        expect(showing()[1], [0]);
+
+        // Still on the same rod: no rebuild, but the callback is still called.
+        final callbacksBefore = touchCallbacks;
+        await mouse.moveTo(groupPosition(1) + const Offset(1, 0));
+        await tester.pump();
+        expect(leaf(), same(touchedLeaf));
+        expect(touchCallbacks, callbacksBefore + 1);
+
+        await mouse.moveTo(groupPosition(3));
+        await tester.pump();
+        expect(leaf(), isNot(same(touchedLeaf)));
+        expect(showing()[1], isEmpty);
+        expect(showing()[3], [0]);
+
+        // Between two rods: cleared once.
+        final between = (groupPosition(3) + groupPosition(4)) / 2;
+        await mouse.moveTo(between);
+        await tester.pump();
+        final clearedLeaf = leaf();
+        expect(showing().every((rods) => rods.isEmpty), isTrue);
+
+        await mouse.moveTo(between + const Offset(1, 0));
+        await tester.pump();
+        expect(leaf(), same(clearedLeaf));
       });
     });
   });

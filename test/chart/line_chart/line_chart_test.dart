@@ -1,3 +1,4 @@
+import 'package:fl_chart/src/chart/base/axis_chart/axis_chart_data.dart';
 import 'package:fl_chart/src/chart/base/axis_chart/axis_chart_scaffold_widget.dart';
 import 'package:fl_chart/src/chart/base/axis_chart/scale_axis.dart';
 import 'package:fl_chart/src/chart/base/axis_chart/transformation_config.dart';
@@ -5,8 +6,8 @@ import 'package:fl_chart/src/chart/line_chart/line_chart.dart';
 import 'package:fl_chart/src/chart/line_chart/line_chart_data.dart';
 import 'package:fl_chart/src/chart/line_chart/line_chart_renderer.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   Widget createTestWidget({
@@ -52,12 +53,14 @@ void main() {
 
       await tester.pumpAndSettle();
 
+      final transformationController = TransformationController();
+      addTearDown(transformationController.dispose);
       final transformationConfig = FlTransformationConfig(
         scaleAxis: FlScaleAxis.free,
         trackpadScrollCausesScale: true,
         maxScale: 10,
         minScale: 1.5,
-        transformationController: TransformationController(),
+        transformationController: transformationController,
       );
       await tester.pumpWidget(
         createTestWidget(
@@ -817,6 +820,76 @@ void main() {
         expect(chartVirtualRect.size, greaterThan(renderBox.size));
         expect(chartVirtualRect.left, isNegative);
         expect(chartVirtualRect.top, isNegative);
+      });
+    });
+
+    group('built-in touch', () {
+      testWidgets('rebuilds only when the touched spots change',
+          (tester) async {
+        var touchCallbacks = 0;
+        await tester.pumpWidget(
+          createTestWidget(
+            chart: LineChart(
+              LineChartData(
+                minX: 0,
+                maxX: 10,
+                minY: 0,
+                maxY: 10,
+                titlesData: const FlTitlesData(show: false),
+                lineTouchData: LineTouchData(
+                  touchSpotThreshold: 5,
+                  touchCallback: (_, __) => touchCallbacks++,
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: List.generate(
+                      11,
+                      (i) => FlSpot(i.toDouble(), i.toDouble()),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final rect = tester.getRect(find.byType(LineChartLeaf));
+        Offset spotPosition(int index) =>
+            Offset(rect.left + rect.width * index / 10, rect.center.dy);
+        LineChartLeaf leaf() =>
+            tester.widget<LineChartLeaf>(find.byType(LineChartLeaf));
+
+        final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+        addTearDown(mouse.removePointer);
+        await mouse.addPointer(location: rect.topLeft - const Offset(10, 10));
+        await mouse.moveTo(spotPosition(3));
+        await tester.pump();
+        final touchedLeaf = leaf();
+        expect(touchedLeaf.data.lineBarsData.first.showingIndicators, [3]);
+
+        // Still on spot 3: no rebuild, but the callback is still called.
+        final callbacksBefore = touchCallbacks;
+        await mouse.moveTo(spotPosition(3) + const Offset(1, 0));
+        await tester.pump();
+        expect(leaf(), same(touchedLeaf));
+        expect(touchCallbacks, callbacksBefore + 1);
+
+        await mouse.moveTo(spotPosition(6));
+        await tester.pump();
+        expect(leaf(), isNot(same(touchedLeaf)));
+        expect(leaf().data.lineBarsData.first.showingIndicators, [6]);
+
+        // Between two spots, further than touchSpotThreshold: cleared once.
+        final between = (spotPosition(6) + spotPosition(7)) / 2;
+        await mouse.moveTo(between);
+        await tester.pump();
+        final clearedLeaf = leaf();
+        expect(clearedLeaf.data.lineBarsData.first.showingIndicators, isEmpty);
+
+        await mouse.moveTo(between + const Offset(1, 0));
+        await tester.pump();
+        expect(leaf(), same(clearedLeaf));
       });
     });
   });

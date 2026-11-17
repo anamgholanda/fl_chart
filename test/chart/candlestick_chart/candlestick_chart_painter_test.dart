@@ -1,11 +1,11 @@
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:fl_chart/src/chart/base/base_chart/base_chart_painter.dart';
 import 'package:fl_chart/src/chart/candlestick_chart/candlestick_chart_painter.dart';
 import 'package:fl_chart/src/utils/canvas_wrapper.dart';
 import 'package:fl_chart/src/utils/utils.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
@@ -50,8 +50,67 @@ void main() {
         holder,
       );
 
-      verify(mockCanvas.clipRect(any)).called(1);
+      verify(mockCanvas.clipRect(any)).called(2);
+      verifyNever(mockCanvas.saveLayer(any, any));
       verify(mockCanvas.drawLine(any, any, any)).called(6);
+      Utils.changeInstance(utilsMainInstance);
+    });
+
+    test('enabling one clip side does not clip the others (#1262)', () {
+      final utilsMainInstance = Utils();
+      const viewSize = Size(400, 400);
+      final data = CandlestickChartData(
+        candlestickSpots: [
+          candlestickSpot1,
+          candlestickSpot2,
+          candlestickSpot3,
+        ],
+        borderData: FlBorderData(show: true, border: Border.all(width: 8)),
+        clipData: const FlClipData(
+          top: false,
+          bottom: false,
+          left: true,
+          right: false,
+        ),
+      );
+
+      final candlestickPainter = CandlestickChartPainter();
+      final holder = PaintHolder<CandlestickChartData>(
+        data,
+        data,
+        TextScaler.noScaling,
+      );
+
+      final mockUtils = MockUtils();
+      Utils.changeInstance(mockUtils);
+      when(mockUtils.getEfficientInterval(any, any))
+          .thenAnswer((realInvocation) => 1.0);
+      when(mockUtils.getBestInitialIntervalValue(any, any, any))
+          .thenAnswer((realInvocation) => 1.0);
+      final mockBuildContext = MockBuildContext();
+      final mockCanvas = MockCanvas();
+      final canvasWrapper = CanvasWrapper(mockCanvas, viewSize);
+      candlestickPainter.paint(
+        mockBuildContext,
+        canvasWrapper,
+        holder,
+      );
+
+      final verifyResult = verify(
+        mockCanvas.clipRect(
+          captureAny,
+          clipOp: anyNamed('clipOp'),
+          doAntiAlias: anyNamed('doAntiAlias'),
+        ),
+      );
+      // The first clip is the canvas, the bounds the layer used to have.
+      final rect = verifyResult.captured.last as Rect;
+      verifyResult.called(2);
+      // Only the left side is clipped; the other three stay unbounded.
+      expect(rect.left, 4);
+      expect(rect.top, double.negativeInfinity);
+      expect(rect.right, double.infinity);
+      expect(rect.bottom, double.infinity);
       Utils.changeInstance(utilsMainInstance);
     });
   });

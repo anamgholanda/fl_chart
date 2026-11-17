@@ -5,8 +5,8 @@ import 'package:fl_chart/src/chart/candlestick_chart/candlestick_chart.dart';
 import 'package:fl_chart/src/chart/candlestick_chart/candlestick_chart_data.dart';
 import 'package:fl_chart/src/chart/candlestick_chart/candlestick_chart_renderer.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   Widget createTestWidget({
@@ -57,12 +57,14 @@ void main() {
 
       await tester.pumpAndSettle();
 
+      final transformationController = TransformationController();
+      addTearDown(transformationController.dispose);
       final transformationConfig = FlTransformationConfig(
         scaleAxis: FlScaleAxis.free,
         trackpadScrollCausesScale: true,
         maxScale: 10,
         minScale: 1.5,
-        transformationController: TransformationController(),
+        transformationController: transformationController,
       );
       await tester.pumpWidget(
         createTestWidget(

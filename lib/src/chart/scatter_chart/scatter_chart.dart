@@ -1,7 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:fl_chart/src/chart/base/axis_chart/axis_chart_scaffold_widget.dart';
 import 'package:fl_chart/src/chart/scatter_chart/scatter_chart_renderer.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/widgets.dart';
 
 /// Renders a pie chart as a widget, using provided [ScatterChartData].
 class ScatterChart extends ImplicitlyAnimatedWidget {
@@ -106,13 +106,24 @@ class _ScatterChartState extends AnimatedWidgetBaseState<ScatterChart> {
     if (!desiredTouch ||
         touchResponse == null ||
         touchResponse.touchedSpot == null) {
+      if (touchedSpots.isEmpty) {
+        // Nothing is shown, so there is nothing to clear.
+        return;
+      }
       setState(() {
         touchedSpots = [];
       });
       return;
     }
+
+    final spotIndex = touchResponse.touchedSpot!.spotIndex;
+    if (touchedSpots.length == 1 && touchedSpots.first == spotIndex) {
+      // The pointer moved but still touches the same spot (common with mouse
+      // hover), so a rebuild would show exactly the same thing.
+      return;
+    }
     setState(() {
-      touchedSpots = [touchResponse.touchedSpot!.spotIndex];
+      touchedSpots = [spotIndex];
     });
   }
 

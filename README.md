@@ -11,38 +11,29 @@
 <a href="https://www.buymeacoffee.com/fl_chart" title="Donate to this project using Buy Me A Coffee"><img src="https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg" alt="Buy Me A Coffee donate button" /></a>
 </span>
 
-### Our Financial Heroes
-Your financial support acts as fuel for fl_chart's development. [Support here](https://github.com/sponsors/imaNNeo).
+### Support fl_chart 💙
+I've been building and maintaining fl_chart for free since 2019, in my spare time. These days I also make games. If fl_chart has saved you some time, the nicest way to say thanks is to play one of them for a minute. It costs you nothing and it means a lot to me. 💙
+
 <table>
-	<tbody>
-		<tr>
-				<td>
-					<a href="https://github.com/sponsors/imaNNeo">
-						<img src="https://github.com/imaNNeo/fl_chart_landing/raw/main/static/img/sponsors/intero-the-sniffers.png">
-					</a>
-				</td>
-				<td>
-					<a href="https://github.com/sponsors/imaNNeo">
-						<picture>
-							<source media="(prefers-color-scheme: dark)" srcset="https://github.com/imaNNeo/fl_chart/raw/main/repo_files/sponsors/become_a_sponsor_dark.png">
-							<source media="(prefers-color-scheme: light)" srcset="https://github.com/imaNNeo/fl_chart/raw/main/repo_files/sponsors/become_a_sponsor_light.png">
-							<img alt="Become a sponsor" >
-						</picture>
-					</a>
-				</td>
-				<td>
-					<a href="https://github.com/sponsors/imaNNeo">
-						<img src="https://github.com/imaNNeo/fl_chart/raw/main/repo_files/sponsors/become_a_hero_empty.png">
-					</a>
-				</td>
-				<td>
-					<a href="https://github.com/sponsors/imaNNeo">
-						<img src="https://github.com/imaNNeo/fl_chart/raw/main/repo_files/sponsors/become_a_hero_empty.png">
-					</a>
-				</td>
-		</tr>
-	</tbody>
+  <tr>
+    <td width="200"><a href="https://savethepotato.com/get/?utm_source=fl_chart&utm_medium=readme"><img src="https://github.com/imaNNeo/fl_chart/raw/main/repo_files/projects/save_the_potato.jpg" width="200" alt="Save the Potato"></a></td>
+    <td>
+      <b>Save the Potato</b><br>
+      <sub>Keep the orbs away so the potato can enjoy its music in peace.</sub><br>
+      <a href="https://savethepotato.com/get/?utm_source=fl_chart&utm_medium=readme">▶ Play it now</a>
+    </td>
+  </tr>
+  <tr>
+    <td width="200"><a href="https://ttg.app2pack.dev/get/?utm_source=fl_chart&utm_medium=readme"><img src="https://github.com/imaNNeo/fl_chart/raw/main/repo_files/projects/ttg.jpg" width="200" alt="TTG - Through The Galaxies"></a></td>
+    <td>
+      <b>TTG - Through The Galaxies</b><br>
+      <sub>Fly your rocket from planet to planet and see how far into space you can go.</sub><br>
+      <a href="https://ttg.app2pack.dev/get/?utm_source=fl_chart&utm_medium=readme">▶ Play it now</a>
+    </td>
+  </tr>
 </table>
+
+📬 Want to hear about my next game? [Join my mailing list](https://iman-khoshabi.kit.com/profile). Only a few emails a year, no spam.
 
 ### Overview
 FL Chart is a highly customizable Flutter chart library that supports **[Line Chart](https://app.flchart.dev/#/line)**, **[Bar Chart](https://app.flchart.dev/#/bar)**, **[Pie Chart](https://app.flchart.dev/#/pie)**, **[Scatter Chart](https://app.flchart.dev/#/scatter)**, and **[Radar Chart](https://app.flchart.dev/#/radar)**.
@@ -54,13 +45,13 @@ FL Chart is a highly customizable Flutter chart library that supports **[Line Ch
 
 |LineChart	|BarChart		|PieChart		|
 |:------------:|:------------:|:-------------:|
-|	[![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/line_chart/line_chart_sample_1.gif)](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/line_chart.md#sample-1-source-code) [![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/line_chart/line_chart_sample_2.gif)](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/line_chart.md#sample-2-source-code)  |	[![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/bar_chart/bar_chart_sample_1.gif)](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/bar_chart.md#sample-1-source-code) [![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/bar_chart/bar_chart_sample_2.gif)](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/bar_chart.md#sample-2-source-code)  | [![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/pie_chart/pie_chart_sample_1.gif)](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/pie_chart.md#sample-1-source-code) [![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/pie_chart/pie_chart_sample_2.gif)](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/pie_chart.md#sample-2-source-code) |
-|[Read More](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/line_chart.md)|[Read More](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/bar_chart.md)|[Read More](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/pie_chart.md)|
+|	[![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/line_chart/line_chart_sample_1.gif)](https://flchart.dev/docs/line-chart#sample-1-source-code) [![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/line_chart/line_chart_sample_2.gif)](https://flchart.dev/docs/line-chart#sample-2-source-code)  |	[![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/bar_chart/bar_chart_sample_1.gif)](https://flchart.dev/docs/bar-chart#sample-1-source-code) [![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/bar_chart/bar_chart_sample_2.gif)](https://flchart.dev/docs/bar-chart#sample-2-source-code)  | [![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/pie_chart/pie_chart_sample_1.gif)](https://flchart.dev/docs/pie-chart#sample-1-source-code) [![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/pie_chart/pie_chart_sample_2.gif)](https://flchart.dev/docs/pie-chart#sample-2-source-code) |
+|[Read More](https://flchart.dev/docs/line-chart)|[Read More](https://flchart.dev/docs/bar-chart)|[Read More](https://flchart.dev/docs/pie-chart)|
 
 |ScatterChart	|RadarChart| CandlestickChart|
 |:------------:|:------------:|:-------------:|
-|	[![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/scatter_chart/scatter_chart_sample_1.gif)](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/scatter_chart.md#sample-1-source-code) [![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/scatter_chart/scatter_chart_sample_2.gif)](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/scatter_chart.md#sample-2-source-code)  |	![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/radar_chart/radar_chart_sample_1.jpg)  ![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/blank.png)|![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/candlestick_chart/candlestick_chart_sample_1.gif) ![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/blank.png)|
-|[Read More](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/scatter_chart.md)|[Read More](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/radar_chart.md)|[Read More](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/candlestick_chart.md)|
+|	[![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/scatter_chart/scatter_chart_sample_1.gif)](https://flchart.dev/docs/scatter-chart#sample-1-source-code) [![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/scatter_chart/scatter_chart_sample_2.gif)](https://flchart.dev/docs/scatter-chart#sample-2-source-code)  |	![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/radar_chart/radar_chart_sample_1.jpg)  ![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/blank.png)|![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/candlestick_chart/candlestick_chart_sample_1.gif) ![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/blank.png)|
+|[Read More](https://flchart.dev/docs/scatter-chart)|[Read More](https://flchart.dev/docs/radar-chart)|[Read More](https://flchart.dev/docs/candlestick-chart)|
 
 Banner designed by [Soheil Saffar](https://www.linkedin.com/in/soheilsaffar), and
 samples inspired from
@@ -77,14 +68,14 @@ Thank you all!
 
 First of all, you need to add the `fl_chart` in your project. To do that, follow [this guide](https://pub.dev/packages/fl_chart/install).
 
-Then you need to read the docs. Start from [here](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/index.md).
+Then you need to read the docs. Start from [here](https://flchart.dev/docs).
 
 We suggest that you check the sample source code.
 
-##### - You can read about the animation handling [here](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/handle_animations.md)
+##### - You can read about the animation handling [here](https://flchart.dev/docs/handle-animations)
 |Sample1	|Sample2		|Sample3		|
 |:------------:|:------------:|:-------------:|
-|	[![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/line_chart/line_chart_sample_1_anim.gif)](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/line_chart.md#sample-1-source-code)   |	[![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/line_chart/line_chart_sample_2_anim.gif)](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/line_chart.md#sample-2-source-code) | [![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/bar_chart/bar_chart_sample_1_anim.gif)](https://github.com/imaNNeo/fl_chart/blob/main/repo_files/documentations/bar_chart.md#sample-1-source-code) |
+|	[![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/line_chart/line_chart_sample_1_anim.gif)](https://flchart.dev/docs/line-chart#sample-1-source-code)   |	[![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/line_chart/line_chart_sample_2_anim.gif)](https://flchart.dev/docs/line-chart#sample-2-source-code) | [![](https://github.com/imaNNeo/fl_chart/raw/main/repo_files/images/bar_chart/bar_chart_sample_1_anim.gif)](https://flchart.dev/docs/bar-chart#sample-1-source-code) |
 
 ### Try it out
 You can try the FL Chart sample app on the platforms that are available below:

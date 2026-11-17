@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:fl_chart/src/chart/base/base_chart/base_chart_painter.dart';
 import 'package:fl_chart/src/chart/scatter_chart/scatter_chart_painter.dart';
 import 'package:fl_chart/src/utils/canvas_wrapper.dart';
 import 'package:fl_chart/src/utils/utils.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -129,7 +129,7 @@ void main() {
       ).called(1);
 
       verifyNever(mockCanvasWrapper.drawText(any, any));
-      verify(mockCanvasWrapper.clipRect(any)).called(1);
+      verify(mockCanvasWrapper.clipRect(any)).called(2);
     });
 
     test('test 2', () {
@@ -266,7 +266,54 @@ void main() {
 
       verify(mockCanvasWrapper.drawText(any, any)).called(4);
 
-      verify(mockCanvasWrapper.clipRect(any)).called(1);
+      verify(mockCanvasWrapper.clipRect(any)).called(2);
+    });
+
+    test('enabling one clip side does not clip the others (#1262)', () {
+      const viewSize = Size(100, 100);
+
+      final data = ScatterChartData(
+        minY: 0,
+        maxY: 10,
+        minX: 0,
+        maxX: 10,
+        scatterSpots: [ScatterSpot(1, 1)],
+        titlesData: const FlTitlesData(show: false),
+        borderData: FlBorderData(show: true, border: Border.all(width: 8)),
+        clipData: const FlClipData(
+          top: false,
+          bottom: false,
+          left: true,
+          right: false,
+        ),
+      );
+
+      final scatterChartPainter = ScatterChartPainter();
+      final holder = PaintHolder<ScatterChartData>(
+        data,
+        data,
+        TextScaler.noScaling,
+      );
+
+      final mockBuildContext = MockBuildContext();
+      final mockCanvasWrapper = MockCanvasWrapper();
+      when(mockCanvasWrapper.size).thenReturn(viewSize);
+      when(mockCanvasWrapper.canvas).thenReturn(MockCanvas());
+      scatterChartPainter.drawSpots(
+        mockBuildContext,
+        mockCanvasWrapper,
+        holder,
+      );
+
+      final verifyResult = verify(mockCanvasWrapper.clipRect(captureAny));
+      // The first clip is the canvas, the bounds the layer used to have.
+      final rect = verifyResult.captured.last as Rect;
+      verifyResult.called(2);
+      // Only the left side is clipped; the other three stay unbounded.
+      expect(rect.left, 4);
+      expect(rect.top, double.negativeInfinity);
+      expect(rect.right, double.infinity);
+      expect(rect.bottom, double.infinity);
     });
   });
 
